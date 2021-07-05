@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from './MediaCard';
-import { Box } from '@material-ui/core';
+import { Box, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import Pagination from '@material-ui/lab/Pagination';
 import { IPaginationInfo, IResponse, IRickAndMorty } from '../types';
@@ -13,11 +13,19 @@ const useStyles = makeStyles({
   },
   cardsContainer: {
     paddingTop: 80,
+    width: '100%',
     display: 'flex',
     overflow: 'scroll',
     flexWrap: 'wrap',
     padding: 10,
     paddingBottom: 80,
+  },
+  loader: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '80vh',
+    width: '100%',
   },
   paginationContainer: {
     display: 'flex',
@@ -58,6 +66,7 @@ export default function RickAndMorty() {
 
   const [pageData, setPageData] = React.useState<IRickAndMorty[]>([]);
   const [currPage, setCurrentPage] = React.useState<number>(setPageFromQueryString());
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const cardContainerRef = React.createRef<HTMLDivElement>();
   const [paginationInfo, setPaginationInfo] = React.useState<IPaginationInfo>({
     count: 0,
@@ -76,12 +85,16 @@ export default function RickAndMorty() {
     }
   }, [pageData, cardContainerRef]);
 
-  const fetchData = (page: number) => fetch(`https://rickandmortyapi.com/api/character/?page=${page}`)
-    .then(response => response.json())
-    .then((data: IResponse) => {
-      setPageData(data.results);
-      setPaginationInfo(data.info);
-    });
+  const fetchData = (page: number) => {
+    setIsLoading(true)
+    fetch(`https://rickandmortyapi.com/api/character/?page=${page}`)
+        .then(response => response.json())
+        .then((data: IResponse) => {
+            setPageData(data.results);
+            setPaginationInfo(data.info);
+            setIsLoading(false);
+        }).catch(() => setIsLoading(false))
+  }
 
   const handlePageClick = (event: object, page: number) => {
     setCurrentPage(page);
@@ -90,11 +103,17 @@ export default function RickAndMorty() {
 
   return (
     <Box className={classes.main}>
-        <div className={classes.cardsContainer} ref={cardContainerRef}>
-            {
-                pageData.map((cardData, idx) => <Card key={idx} cardData={cardData}/>)
-            }
-        </div>
+        {
+            <div className={classes.cardsContainer} ref={cardContainerRef}>
+                {
+                  isLoading ? 
+                    <Box className={classes.loader}>
+                      <CircularProgress />
+                    </Box> : 
+                    pageData.map((cardData, idx) => <Card key={idx} cardData={cardData}/>)
+                }
+            </div>
+        }
         <Box className={classes.paginationContainer}>
             <Pagination page={currPage} count={paginationInfo.pages} onChange={handlePageClick}/>
         </Box>
